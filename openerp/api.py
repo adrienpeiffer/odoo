@@ -12,7 +12,6 @@
 
     For instance, the statements::
 
-        model = self.pool.get(MODEL)
         ids = model.search(cr, uid, DOMAIN, context=context)
         for rec in model.browse(cr, uid, ids, context=context):
             print rec.name
