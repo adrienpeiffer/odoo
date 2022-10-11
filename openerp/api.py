@@ -10,8 +10,6 @@
     style, those parameters are hidden into model instances, which gives it a
     more object-oriented feel.
 
-    For instance, the statements::
-
         ids = model.search(cr, uid, DOMAIN, context=context)
         for rec in model.browse(cr, uid, ids, context=context):
             print rec.name
