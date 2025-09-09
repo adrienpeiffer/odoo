@@ -116,7 +116,7 @@ _SAFE_OPCODES = _EXPR_OPCODES.union(set(opmap[x] for x in [
     'RAISE_VARARGS', 'LOAD_NAME', 'STORE_NAME', 'DELETE_NAME', 'LOAD_ATTR',
     'LOAD_FAST', 'STORE_FAST', 'DELETE_FAST', 'UNPACK_SEQUENCE',
     'LOAD_GLOBAL', # Only allows access to restricted globals
-    'RERAISE', 'JUMP_IF_NOT_EXC_MATCH',
+    'RERAISE', 'JUMP_IF_NOT_EXC_MATCH', 'GEN_START',
 ] if x in opmap))
 
 _logger = logging.getLogger(__name__)
