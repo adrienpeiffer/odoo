@@ -34,14 +34,14 @@ class StockMove(models.Model):
         keys_sorted += [move.purchase_line_id.id, move.created_purchase_line_id.id]
         return keys_sorted
 
-    def _get_price_unit(self):
+    def _get_price_unit(self, move_line=None):
         """ Returns the unit price for the move"""
         self.ensure_one()
         if self.purchase_line_id and self.product_id.id == self.purchase_line_id.product_id.id:
             price_unit_prec = self.env['decimal.precision'].precision_get('Product Price')
             line = self.purchase_line_id
             order = line.order_id
-            price_unit = line.price_unit
+            price_unit = line._prepare_compute_all_values()['price_unit']
             if line.taxes_id:
                 qty = line.product_qty or 1
                 price_unit = line.taxes_id.with_context(round=False).compute_all(price_unit, currency=line.order_id.currency_id, quantity=qty)['total_void']
@@ -56,7 +56,7 @@ class StockMove(models.Model):
                 price_unit = order.currency_id._convert(
                     price_unit, order.company_id.currency_id, order.company_id, fields.Date.context_today(self), round=False)
             return price_unit
-        return super(StockMove, self)._get_price_unit()
+        return super(StockMove, self)._get_price_unit(move_line=move_line)
 
     def _generate_valuation_lines_data(self, partner_id, qty, debit_value, credit_value, debit_account_id, credit_account_id, description):
         """ Overridden from stock_account to support amount_currency on valuation lines generated from po
@@ -232,13 +232,23 @@ class ProductionLot(models.Model):
 
     @api.depends('name')
     def _compute_purchase_order_ids(self):
+        stock_move_line_model = self.env['stock.move.line']
+        read_group_res = stock_move_line_model.read_group(
+            domain=[('lot_id', 'in', self.ids), ('state', '=', 'done'), ('picking_id.location_id.usage', '=', 'supplier')],
+            fields=['lot_id', 'move_id'],
+            groupby=['lot_id', 'move_id'],
+            lazy=False,
+        )
+        stock_move_ids_by_lot = {}
+        for dic in read_group_res:
+            lot_id = dic['lot_id'][0]
+            move_id = dic['move_id'][0]
+            stock_move_ids_by_lot.setdefault(lot_id, set())
+            stock_move_ids_by_lot[lot_id].add(move_id)
+        stock_move_model = self.env['stock.move']
         for lot in self:
-            stock_moves = self.env['stock.move.line'].search([
-                ('lot_id', '=', lot.id),
-                ('state', '=', 'done')
-            ]).mapped('move_id')
-            stock_moves = stock_moves.search([('id', 'in', stock_moves.ids)]).filtered(
-                lambda move: move.picking_id.location_id.usage == 'supplier' and move.state == 'done')
+            lot_stock_move_ids = list(stock_move_ids_by_lot.get(lot.id, set()))
+            stock_moves = stock_move_model.browse(lot_stock_move_ids)
             lot.purchase_order_ids = stock_moves.mapped('purchase_line_id.order_id')
             lot.purchase_order_count = len(lot.purchase_order_ids)
 

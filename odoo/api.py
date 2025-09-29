@@ -18,8 +18,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping
 from contextlib import contextmanager
-from copy import deepcopy
-from inspect import getargspec
+from inspect import signature
 from pprint import pformat
 from weakref import WeakSet
 
@@ -275,7 +274,7 @@ def downgrade(method, value, self, args, kwargs):
     if not spec:
         return value
     _, convert, _ = spec
-    if convert and len(getargspec(convert).args) > 1:
+    if convert and len(signature(convert).parameters) > 1:
         return convert(self, value, *args, **kwargs)
     elif convert:
         return convert(value)
@@ -601,6 +600,16 @@ class Environment(Mapping):
         :rtype: str
         """
         return self.context.get('lang')
+
+    @property
+    def ocb(self):
+        """Allow to flag OCB environment so we can easily address compatibility issues
+        when making backports or improvements that aren't present in the current Odoo
+        version.
+
+        :rtype bool
+        """
+        return True
 
     def clear(self):
         """ Clear all record caches, and discard all fields to recompute.
