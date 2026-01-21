@@ -38,6 +38,7 @@ class StockMove(models.Model):
         valuation_layer_model = self.env['stock.valuation.layer']
         svls = valuation_layer_model.browse()
         price_unit = self.price_unit
+        precision = self.env['decimal.precision'].precision_get('Product Price')
         if self.company_id.currency_id.is_zero(self.price_unit) and not self._should_force_price_unit():
             price_unit = self.product_id.standard_price
         if move_line and move_line.lot_id:
